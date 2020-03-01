@@ -22,8 +22,6 @@ mongoose.connect('mongodb+srv://admin:1234@nyquil-qqig0.mongodb.net/coding-chall
 
 // --------------------------------------------------------------------------------------------------------------------------------------------
 Tickets_Setup()
-// Ticket_Insert("BP",10)
-
 // --------------------------------------------------------------------------------------------------------------------------------------------
 
 app.get('/', (req, res) => {
@@ -33,6 +31,7 @@ app.get('/', (req, res) => {
 })
 
 app.post('/ticket-get', async (req, res) => {
+    res.header("Access-Control-Allow-Origin","*")
 
     const data = await tickets.findOneAndUpdate(
         { amount: { $gt: 0 } },
@@ -45,16 +44,32 @@ app.post('/ticket-get', async (req, res) => {
         message: "OUT"
     })
 
-    await data.save().then(() => console.log("Got da Tickets"))
+    await data.save().then(() => console.log(fcc.green,"Got da Tickets"))
 
     let ticket_id = ''
 
-    if (data.latest_id < 10) ticket_id = 'BP0' + data.latest_id
-    else ticket_id = 'BP' + data.latest_id
+    if (data.latest_id < 10) ticket_id = data.name + '0' + data.latest_id
+    else ticket_id = data.name + data.latest_id
 
     res.send({
         ok: "true",
         ticket_id: ticket_id
+    })
+})
+
+app.post('/ticket-isAvailable',async (req, res) => {
+    res.header("Access-Control-Allow-Origin","*")
+    let {data} = req.body
+    
+    const found = await tickets.findOne({name:data})
+
+    if(!found) return res.send({
+        ok: "false",
+    })
+
+    res.send({
+        ok: "true",
+        availDate: found.availDate
     })
 })
 
@@ -70,17 +85,25 @@ function Tickets_Setup(){
     ticketsSchema = new Schema({
         name:String,
         amount:Number,
-        latest_id:Number
+        latest_id:Number,
+        availDate:{
+            date:String,
+            time:Number
+        }
     })
     
     tickets = mongoose.model('tickets',ticketsSchema)
 }
 
-async function Ticket_Insert(_name,_amount){
+async function Ticket_Insert(_name,_amount,_date,_time){
     const ticketInsert = new tickets({ 
         name:_name,
         amount:_amount,
-        latest_id:0
+        latest_id:0,
+        availDate:{
+            date:_date,
+            time:_time
+        }
     });
     await ticketInsert.save().then(() => console.log(fcc.yellow ,'Tickets has been insert!'));
 }
